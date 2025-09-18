@@ -9,6 +9,194 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script src="https://f6b0d7ee-182f-4af2-ac8b-b0fab5a709ad-00-1m46g79mk0ek4.riker.replit.dev/aayush-analytics.js" defer></script>
+    <script>
+(function() {
+  // Aayush Portfolio Analytics Tracker
+  const ANALYTICS_API_URL = 'https://f6b0d7ee-182f-4af2-ac8b-b0fab5a709ad-00-1m46g79mk0ek4.riker.replit.dev';
+  
+  let sessionId = '';
+  let profileCreated = false;
+  let maxScrollPercent = 0;
+  let scrollTimeout;
+  
+  function getSessionId() {
+    if (!sessionId) {
+      sessionId = localStorage.getItem('aayush_analytics_session') || generateSessionId();
+      localStorage.setItem('aayush_analytics_session', sessionId);
+    }
+    return sessionId;
+  }
+  
+  function generateSessionId() {
+    return 'portfolio_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  }
+  
+  function detectDeviceType() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const width = window.innerWidth || document.documentElement.clientWidth || screen.width;
+    
+    if (userAgent.includes('mobile') && width < 768) {
+      return 'mobile';
+    } else if (width >= 768 && width < 1024) {
+      return 'tablet';
+    } else {
+      return 'desktop';
+    }
+  }
+  
+  function detectBrowser() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('chrome') && !userAgent.includes('edge')) {
+      return 'Chrome';
+    } else if (userAgent.includes('firefox')) {
+      return 'Firefox';
+    } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+      return 'Safari';
+    } else if (userAgent.includes('edge')) {
+      return 'Edge';
+    } else if (userAgent.includes('opera')) {
+      return 'Opera';
+    }
+    return 'Other';
+  }
+  
+  async function makeRequest(endpoint, data) {
+    try {
+      const response = await fetch(`${ANALYTICS_API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      return response.ok;
+    } catch (error) {
+      console.debug('Analytics tracking error:', error);
+      return false;
+    }
+  }
+  
+  async function initializeSession() {
+    await makeRequest('/api/analytics/session', {
+      sessionId: getSessionId(),
+      userAgent: navigator.userAgent,
+      ipAddress: '',
+    });
+  }
+  
+  async function createUserProfile() {
+    if (profileCreated) return;
+    
+    const success = await makeRequest('/api/segmentation/profile', {
+      sessionId: getSessionId(),
+      deviceType: detectDeviceType(),
+      browser: detectBrowser(),
+      screenResolution: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      language: navigator.language || 'en-US',
+      country: '',
+    });
+    
+    if (success) {
+      profileCreated = true;
+    }
+  }
+  
+  async function trackPageView(path) {
+    await makeRequest('/api/analytics/pageview', {
+      sessionId: getSessionId(),
+      path: path || window.location.pathname,
+      userAgent: navigator.userAgent,
+      referrer: document.referrer,
+      ipAddress: '',
+    });
+  }
+  
+  async function trackEngagement(eventType, path, elementId, elementClass, metadata) {
+    await makeRequest('/api/analytics/engagement', {
+      sessionId: getSessionId(),
+      eventType,
+      path: path || window.location.pathname,
+      elementId,
+      elementClass,
+      metadata,
+    });
+  }
+  
+  async function trackScrollDepth(path, maxScrollPercentage) {
+    await makeRequest('/api/analytics/scroll', {
+      sessionId: getSessionId(),
+      path: path || window.location.pathname,
+      maxScrollPercentage,
+    });
+  }
+  
+  function handleScroll() {
+    const scrollPercent = Math.round(
+      (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+    );
+    
+    if (scrollPercent > maxScrollPercent) {
+      maxScrollPercent = scrollPercent;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        trackScrollDepth(window.location.pathname, maxScrollPercent);
+      }, 1000);
+    }
+  }
+  
+  function handleClick(event) {
+    const target = event.target;
+    trackEngagement(
+      'click',
+      window.location.pathname,
+      target.id || undefined,
+      target.className || undefined,
+      {
+        tagName: target.tagName,
+        textContent: target.textContent ? target.textContent.slice(0, 100) : undefined,
+      }
+    );
+  }
+  
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      trackEngagement('page_visible', window.location.pathname);
+    } else {
+      trackEngagement('page_hidden', window.location.pathname);
+    }
+  }
+  
+  function initializeTracking() {
+    initializeSession();
+    createUserProfile();
+    trackPageView(window.location.pathname);
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('click', handleClick);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    let currentPath = window.location.pathname;
+    setInterval(() => {
+      if (window.location.pathname !== currentPath) {
+        currentPath = window.location.pathname;
+        trackPageView(currentPath);
+        maxScrollPercent = 0;
+      }
+    }, 1000);
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTracking);
+  } else {
+    initializeTracking();
+  }
+  
+  window.aayushAnalytics = {
+    trackEvent: trackEngagement,
+    trackPageView: trackPageView,
+  };
+})();
+</script>
   </body>
 </html>
