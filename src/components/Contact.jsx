@@ -6,6 +6,9 @@ import { SectionWrapper } from '../hoc'
 import emailjs from '@emailjs/browser'
 import { EarthCanvas } from './canvas'
 import { slideIn } from '../utils/motion'
+import { BiLogoGmail } from "react-icons/bi";
+import { BsTelephoneFill } from "react-icons/bs";
+
 
 //
 //
@@ -65,6 +68,8 @@ const Contact = () => {
       >
         <p className={styles.sectionSubText}>Get in Touch</p>
         <h3 className={styles.sectionHeadText}>Contact.</h3>
+        <h1 className="text-[26px] p-1 m-1 flex"><BiLogoGmail /><a href="https://mail.google.com/mail/u/1/?view=cm&fs=1&to=kumar.aayush.20021276@gmail.com&tf=1" style={{fontSize : "20px",marginLeft:"8px"}}>kumar.aayush.20021276@gmail.com</a></h1>
+        <h1 className="text-[24px] p-1 m-1 flex"><BsTelephoneFill /><a href="tel:7091747466" style={{fontSize : "20px",marginLeft:"8px"}}> +91-7091747466</a></h1>
         <form
           ref={formRef}
           onSubmit={handleSubmit}
